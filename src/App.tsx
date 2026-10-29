@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Footer } from './components/layout/Footer'
 import { Header } from './components/layout/Header'
@@ -15,6 +15,7 @@ import { ServicesPage } from './pages/ServicesPage'
 import {
   ForgotPasswordPage,
   ResetPasswordPage,
+  VolunteerDocumentPage,
   VolunteerLandingPage,
   VolunteerLoginPage,
   VolunteerRegistrationPage,
@@ -41,6 +42,7 @@ import {
   AdminLoginPage,
   AdminRoute,
 } from './pages/AdminPages'
+import { AdminVolunteerSignupsPage } from './pages/AdminVolunteerSignupsPage'
 import { PublicCmsDetailPage } from './pages/PublicCmsDetailPage'
 
 const AdminAppointmentsPage = lazy(() => import('./pages/AdminSchedulingPages').then((module) => ({ default: module.AdminAppointmentsPage })))
@@ -55,7 +57,7 @@ const PublicSchedulingPage = lazy(() => import('./pages/PublicSchedulingPage').t
 function App() {
   const { pathname } = useLocation()
   const isPrivateVolunteerPage = pathname.startsWith('/volunteer/') &&
-    !['/volunteer/register', '/volunteer/login', '/volunteer/forgot-password', '/volunteer/reset-password'].includes(pathname)
+    !['/volunteer/register', '/volunteer/login', '/volunteer/application-status', '/volunteer/forgot-password', '/volunteer/reset-password', '/volunteer/privacy-notice', '/volunteer/code-of-conduct'].includes(pathname)
   const isAdminPage = pathname === '/admin' || pathname.startsWith('/admin/')
   const routes = (
     <Routes>
@@ -71,7 +73,10 @@ function App() {
       <Route path="/schedule" element={<Suspense fallback={<p className="py-10 text-center">Loading appointment booking…</p>}><PublicSchedulingPage /></Suspense>} />
       <Route path="/volunteer" element={<VolunteerLandingPage />} />
       <Route path="/volunteer/register" element={<VolunteerRegistrationPage />} />
+      <Route path="/volunteer/privacy-notice" element={<VolunteerDocumentPage document="privacy-notice" />} />
+      <Route path="/volunteer/code-of-conduct" element={<VolunteerDocumentPage document="code-of-conduct" />} />
       <Route path="/volunteer/login" element={<VolunteerLoginPage />} />
+      <Route path="/volunteer/application" element={<Navigate to="/volunteer/application-status" replace />} />
       <Route path="/volunteer/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/volunteer/reset-password" element={<ResetPasswordPage />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -79,6 +84,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="preferences" element={<AdminGeneralPreferencesPage />} />
+          <Route path="volunteers" element={<AdminVolunteerSignupsPage />} />
           <Route path="content" element={<AdminContentListPage />} />
           <Route path="content/new" element={<AdminContentEditorPage />} />
           <Route path="content/:id/edit" element={<AdminContentEditorPage />} />
@@ -96,9 +102,9 @@ function App() {
         </Route>
       </Route>
       <Route element={<ProtectedRoute />}>
+        <Route path="/volunteer/application-status" element={<VolunteerApplicationPage />} />
         <Route path="/volunteer" element={<VolunteerLayout />}>
           <Route path="dashboard" element={<VolunteerDashboardPage />} />
-          <Route path="application" element={<VolunteerApplicationPage />} />
           <Route path="profile" element={<VolunteerProfilePage />} />
           <Route path="availability" element={<VolunteerAvailabilityPage />} />
           <Route path="settings" element={<VolunteerSettingsPage />} />

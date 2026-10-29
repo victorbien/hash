@@ -52,6 +52,28 @@ describe('HASH website routing', () => {
     expect(screen.getByRole('heading', { name: /A community-powered response to HIV and care access/i })).toBeInTheDocument()
   })
 
+  it('keeps the volunteer privacy notice publicly accessible', () => {
+    render(
+      <MemoryRouter initialEntries={['/volunteer/privacy-notice']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Volunteer Privacy Notice' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument()
+  })
+
+  it('keeps the volunteer code of conduct publicly accessible', () => {
+    render(
+      <MemoryRouter initialEntries={['/volunteer/code-of-conduct']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Volunteer Code of Conduct' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument()
+  })
+
   it('uses the Learn more outline style for homepage and page-navigation calls to action', () => {
     render(
       <MemoryRouter initialEntries={['/']}>

@@ -33,7 +33,7 @@ const contentTypeLabels: Record<CmsContentType, string> = {
   about: 'About',
   service: 'Service',
   resource: 'Resource',
-  volunteer: 'Volunteer',
+  volunteer: 'Volunteer information',
   home: 'Homepage',
 }
 
@@ -235,12 +235,15 @@ export function AdminBreadcrumb() {
   const { pathname } = useLocation()
   const isEditor = pathname === '/admin/content/new' || /^\/admin\/content\/[^/]+\/edit$/.test(pathname)
   const schedulingPath = pathname.startsWith('/admin/scheduling')
-  const backHref = isEditor ? '/admin/content' : pathname === '/admin/content' || pathname === '/admin/scheduling' || pathname === '/admin/preferences' ? '/admin' : schedulingPath ? '/admin/scheduling' : '/'
-  const backLabel = isEditor ? 'Back to website content' : pathname === '/admin/content' || pathname === '/admin/scheduling' || pathname === '/admin/preferences' ? 'Back to dashboard' : schedulingPath ? 'Back to Scheduling' : 'Back to HASH website'
+  const backHref = isEditor ? '/admin/content' : pathname === '/admin/content' || pathname === '/admin/scheduling' || pathname === '/admin/preferences' || pathname === '/admin/volunteers' ? '/admin' : schedulingPath ? '/admin/scheduling' : '/'
+  const backLabel = isEditor ? 'Back to website content' : pathname === '/admin/content' || pathname === '/admin/scheduling' || pathname === '/admin/preferences' || pathname === '/admin/volunteers' ? 'Back to dashboard' : schedulingPath ? 'Back to Scheduling' : 'Back to HASH website'
   const crumbs = [
     { label: 'Administrator', href: '/admin' },
     ...(pathname === '/admin/preferences'
       ? [{ label: 'General preferences', href: null }]
+      : []),
+    ...(pathname === '/admin/volunteers'
+      ? [{ label: 'Volunteer sign-ups', href: null }]
       : []),
     ...(pathname.startsWith('/admin/content')
       ? [{ label: 'Website content', href: '/admin/content' }]
@@ -350,8 +353,8 @@ export function AdminDashboardPage() {
   const recent = items?.slice(0, 5) ?? []
 
   return (
-    <section>
-      <div className="rounded-3xl border border-[#f1dfe1] bg-white p-5 sm:p-8">
+    <section className="space-y-6">
+      <header className="rounded-3xl border border-[#f1dfe1] bg-white p-5 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8dfe0] pb-5">
           <div className="flex items-center gap-3">
             <DashboardIcon kind="pages" />
@@ -359,25 +362,77 @@ export function AdminDashboardPage() {
           </div>
           <span className="rounded-full bg-[#fff0ef] px-3 py-1 text-sm font-semibold text-primary">Administration</span>
         </div>
+      </header>
 
-        <div aria-label="Website content areas" className="grid gap-2 border-b border-[#e8dfe0] py-5 sm:grid-cols-2">
+      <section aria-label="Website content" className="rounded-3xl border border-[#f1dfe1] bg-white p-5 sm:p-8">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-[0.15em] text-[#594140]">Website content</h2>
+        <div className="grid gap-2 border-b border-[#e8dfe0] pb-5 sm:grid-cols-2">
           <DashboardLinkCard kind="pages" title="Pages" description="Homepage, About, and other website sections" to="/admin/content?area=pages" />
           <DashboardLinkCard kind="services" title="Services" description="Service descriptions, images, and publication" to="/admin/content?type=service" />
           <DashboardLinkCard kind="resources" title="Resources" description="Reports, documents, and educational materials" to="/admin/content?type=resource" />
-          <DashboardLinkCard kind="volunteers" title="Volunteers" description="Public recruitment and volunteer information" to="/admin/content?type=volunteer" />
+          <DashboardLinkCard kind="volunteers" title="Volunteer information" description="Public website content about volunteering" to="/admin/content?type=volunteer" />
         </div>
-        {schedulingEnabled && (
-          <div aria-label="Administration tools" className="border-b border-[#e8dfe0] py-4">
-            <DashboardLinkCard kind="calendar" title="Scheduling" description="Confidential appointments, calendar availability, and blocked times" to="/admin/scheduling" />
-          </div>
-        )}
-        {isAdministrator && (
-          <div aria-label="General preferences" className="border-b border-[#e8dfe0] py-4">
-            <DashboardLinkCard kind="settings" title="General Preferences" description="Set website-wide session inactivity timeout" to="/admin/preferences" />
-          </div>
-        )}
 
-        <div className="space-y-1 pt-4">
+        <section aria-label="Content overview" className="mt-5 grid gap-4 sm:grid-cols-3">
+          {[
+            { label: 'Total Items', count: items?.length, href: '/admin/content' },
+            { label: 'Published', count: publishedCount, href: '/admin/content?status=published' },
+            { label: 'Draft', count: draftCount, href: '/admin/content?status=draft' },
+          ].map(({ label, count, href }) => (
+            <Link
+              className="interactive-card block rounded-2xl border border-[#f1dfe1] bg-white p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              key={label}
+              to={href}
+            >
+              <span className="block text-sm font-semibold text-[#594140]">{label}</span>
+              <span className="mt-2 block text-3xl font-black">{count ?? '—'}</span>
+              <span className="public-text-link mt-2 inline-block">View content</span>
+            </Link>
+          ))}
+        </section>
+        {error && <div className="mt-5"><ContentLoadError message={error} /></div>}
+        <section className="mt-5 rounded-2xl border border-[#f1dfe1] bg-white p-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-bold">Recently updated</h2>
+            <Link className="public-text-link" to="/admin/content">View all</Link>
+          </div>
+          {!items && !error && <p className="mt-4" role="status">Loading content…</p>}
+          {items?.length === 0 && <p className="mt-4 text-sm text-[#594140]">No CMS content yet. Public CMS areas remain empty until verified content is added and published.</p>}
+          <ul className="mt-4 divide-y divide-[#f1dfe1]">
+            {recent.map((item) => (
+              <li className="flex flex-wrap items-center justify-between gap-3 py-4" key={item.id}>
+                <div><p className="font-semibold">{item.title}</p><p className="text-sm text-[#594140]">{contentTypeLabels[item.content_type]}</p></div>
+                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${statusStyles[item.status]}`}>{item.status}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </section>
+
+      <section aria-label="Volunteer administration" className="rounded-3xl border border-[#f1dfe1] bg-white p-5 sm:p-8">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-[0.15em] text-[#594140]">Volunteer administration</h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <DashboardLinkCard kind="volunteers" title="Volunteer sign-ups" description="Review public enquiries and invite people to create pending volunteer accounts" to="/admin/volunteers" />
+        </div>
+      </section>
+
+      {(schedulingEnabled || isAdministrator) && (
+        <section aria-label="Administration tools" className="rounded-3xl border border-[#f1dfe1] bg-white p-5 sm:p-8">
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-[0.15em] text-[#594140]">Administration tools</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {schedulingEnabled && (
+            <DashboardLinkCard kind="calendar" title="Scheduling" description="Confidential appointments, calendar availability, and blocked times" to="/admin/scheduling" />
+            )}
+            {isAdministrator && (
+              <DashboardLinkCard kind="settings" title="General Preferences" description="Set website-wide session inactivity timeout" to="/admin/preferences" />
+            )}
+          </div>
+        </section>
+      )}
+
+      <section aria-label="Administrative information" className="rounded-3xl border border-[#f1dfe1] bg-white p-5 sm:p-8">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-[0.15em] text-[#594140]">Administrative information</h2>
+        <div className="grid gap-2 sm:grid-cols-2">
           <Link className="interactive-card flex items-start gap-4 rounded-xl border border-transparent p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/admin/content">
             <span className="mt-1"><DashboardIcon kind="media" /></span>
             <span><span className="block font-bold">Media Library</span><span className="mt-1 block text-sm leading-6 text-[#594140]">Manage images and documents attached to website content.</span></span>
@@ -391,41 +446,6 @@ export function AdminDashboardPage() {
             <span><span className="block font-bold">Revision History</span><span className="mt-1 block text-sm leading-6 text-[#594140]">Content changes are recorded. Browsing and restoring revisions are not available yet.</span></span>
           </div>
         </div>
-      </div>
-
-      <section aria-label="Content overview" className="mt-6 grid gap-4 sm:grid-cols-3">
-        {[
-          { label: 'Total Items', count: items?.length, href: '/admin/content' },
-          { label: 'Published', count: publishedCount, href: '/admin/content?status=published' },
-          { label: 'Draft', count: draftCount, href: '/admin/content?status=draft' },
-        ].map(({ label, count, href }) => (
-          <Link
-            className="interactive-card block rounded-2xl border border-[#f1dfe1] bg-white p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            key={label}
-            to={href}
-          >
-            <span className="block text-sm font-semibold text-[#594140]">{label}</span>
-            <span className="mt-2 block text-3xl font-black">{count ?? '—'}</span>
-            <span className="public-text-link mt-2 inline-block">View content</span>
-          </Link>
-        ))}
-      </section>
-      {error && <div className="mt-6"><ContentLoadError message={error} /></div>}
-      <section className="mt-6 rounded-2xl border border-[#f1dfe1] bg-white p-6">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">Recently updated</h2>
-          <Link className="public-text-link" to="/admin/content">View all</Link>
-        </div>
-        {!items && !error && <p className="mt-4" role="status">Loading content…</p>}
-        {items?.length === 0 && <p className="mt-4 text-sm text-[#594140]">No CMS content yet. Public CMS areas remain empty until verified content is added and published.</p>}
-        <ul className="mt-4 divide-y divide-[#f1dfe1]">
-          {recent.map((item) => (
-            <li className="flex flex-wrap items-center justify-between gap-3 py-4" key={item.id}>
-              <div><p className="font-semibold">{item.title}</p><p className="text-sm text-[#594140]">{contentTypeLabels[item.content_type]}</p></div>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${statusStyles[item.status]}`}>{item.status}</span>
-            </li>
-          ))}
-        </ul>
       </section>
     </section>
   )

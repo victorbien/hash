@@ -35,6 +35,7 @@ describe('volunteer route protection', () => {
             first_name: 'Alex',
             last_name: 'Volunteer',
             preferred_name: null,
+            pronouns: null,
             phone: null,
             preferred_contact_method: null,
             location: null,
@@ -79,7 +80,7 @@ describe('volunteer route protection', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Volunteer sign in' })).toBeInTheDocument())
   })
 
-  it('allows a pending applicant to see their application but redirects them from opportunities', async () => {
+  it('keeps pending applicants outside the portal and directs them to application status', async () => {
     getSession.mockResolvedValue({
       data: { session: { user: { id: 'volunteer-1', email: 'alex@example.test' } } },
       error: null,
@@ -90,38 +91,62 @@ describe('volunteer route protection', () => {
           <Routes>
             <Route element={<ProtectedRoute />}>
               <Route path="/volunteer/opportunities" element={<p>Restricted opportunities</p>} />
-              <Route path="/volunteer/dashboard" element={<p>Pending dashboard</p>} />
-              <Route path="/volunteer/application" element={<p>My application</p>} />
+              <Route path="/volunteer/dashboard" element={<p>Volunteer portal dashboard</p>} />
+              <Route path="/volunteer/application-status" element={<p>Application status page</p>} />
             </Route>
           </Routes>
         </AuthProvider>
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Pending dashboard')).toBeInTheDocument()
+    expect(await screen.findByText('Application status page')).toBeInTheDocument()
+    expect(screen.queryByText('Volunteer portal dashboard')).not.toBeInTheDocument()
     expect(screen.queryByText('Restricted opportunities')).not.toBeInTheDocument()
   })
 
-  it('restricts a suspended account to its status page', async () => {
+  it('keeps application status outside the volunteer portal for suspended accounts', async () => {
     status.value = 'suspended'
     getSession.mockResolvedValue({
       data: { session: { user: { id: 'volunteer-1', email: 'alex@example.test' } } },
       error: null,
     })
     render(
-      <MemoryRouter initialEntries={['/volunteer/application']}>
+      <MemoryRouter initialEntries={['/volunteer/dashboard']}>
         <AuthProvider>
           <Routes>
             <Route element={<ProtectedRoute />}>
-              <Route path="/volunteer/application" element={<p>Private application data</p>} />
-              <Route path="/volunteer/dashboard" element={<p>Restricted account status</p>} />
+              <Route path="/volunteer/application-status" element={<p>Application status page</p>} />
+              <Route path="/volunteer/dashboard" element={<p>Volunteer portal dashboard</p>} />
             </Route>
           </Routes>
         </AuthProvider>
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Restricted account status')).toBeInTheDocument()
-    expect(screen.queryByText('Private application data')).not.toBeInTheDocument()
+    expect(await screen.findByText('Application status page')).toBeInTheDocument()
+    expect(screen.queryByText('Volunteer portal dashboard')).not.toBeInTheDocument()
+  })
+
+  it('allows approved volunteers into the portal and redirects them away from application status', async () => {
+    status.value = 'approved'
+    getSession.mockResolvedValue({
+      data: { session: { user: { id: 'volunteer-1', email: 'alex@example.test' } } },
+      error: null,
+    })
+    render(
+      <MemoryRouter initialEntries={['/volunteer/application-status']}>
+        <AuthProvider>
+          <Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/volunteer/application-status" element={<p>Application status page</p>} />
+              <Route path="/volunteer/dashboard" element={<p>Trained volunteer portal</p>} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Trained volunteer portal')).toBeInTheDocument()
+    expect(screen.queryByText('Application status page')).not.toBeInTheDocument()
   })
 })

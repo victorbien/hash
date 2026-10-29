@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ForgotPasswordPage, ResetPasswordPage, VolunteerLandingPage, VolunteerLoginPage, VolunteerRegistrationPage } from './VolunteerPublicPages'
+import { ForgotPasswordPage, ResetPasswordPage, VolunteerDocumentPage, VolunteerLandingPage, VolunteerLoginPage, VolunteerRegistrationPage } from './VolunteerPublicPages'
 
 const { from, insert, signInWithPassword, resetPasswordForEmail, updateUser } = vi.hoisted(() => ({
   from: vi.fn(),
@@ -35,6 +35,7 @@ function fillSignUpFields() {
   fireEvent.change(screen.getByLabelText(/^Email address/), { target: { value: 'alex@example.test' } })
   fireEvent.change(screen.getByLabelText(/^Preferred mode of contact/), { target: { value: 'email' } })
   fireEvent.click(screen.getByLabelText(/I understand HASH will use these details/))
+  fireEvent.click(screen.getByLabelText(/I have read and agree to the/))
 }
 
 describe('volunteer sign-up sheet', () => {
@@ -86,6 +87,7 @@ describe('volunteer sign-up sheet', () => {
       email: 'alex@example.test',
       preferred_contact_method: 'email',
       privacy_acknowledged: true,
+      policies_acknowledged: true,
     })
     expect(await screen.findByRole('status')).toHaveTextContent(/Thank you for your interest/)
   })
@@ -119,6 +121,26 @@ describe('volunteer sign-up sheet', () => {
     expect(submitButton).toHaveAttribute('type', 'submit')
   })
 
+  it('links to temporary privacy and conduct documents and requires acceptance', () => {
+    renderRegistration()
+
+    expect(screen.getByRole('link', { name: 'Privacy Notice' })).toHaveAttribute('href', '/volunteer/privacy-notice')
+    expect(screen.getByRole('link', { name: 'Code of Conduct' })).toHaveAttribute('href', '/volunteer/code-of-conduct')
+    expect(screen.getByLabelText(/I have read and agree to the/)).toBeRequired()
+  })
+
+  it('shows temporary volunteer document content', () => {
+    render(
+      <MemoryRouter>
+        <VolunteerDocumentPage document="privacy-notice" />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Volunteer Privacy Notice' })).toBeInTheDocument()
+    expect(screen.getByText(/This is temporary guidance/)).toBeInTheDocument()
+    expect(screen.getByText(/scheduled for deletion within 14 days/)).toBeInTheDocument()
+  })
+
   it('supports sign-in and shows a generic invalid-credentials error', async () => {
     signInWithPassword.mockResolvedValue({ error: { message: 'Invalid login credentials' } })
     render(
@@ -132,9 +154,11 @@ describe('volunteer sign-up sheet', () => {
     fireEvent.change(screen.getByLabelText(/^Email address/), { target: { value: 'alex@example.test' } })
     const password = screen.getByLabelText(/^Password/) as HTMLInputElement
     fireEvent.change(password, { target: { value: 'secret-value' } })
+    const signInButton = screen.getByRole('button', { name: /^Sign in$/i })
+    expect(signInButton).toHaveClass('public-outline-link', 'w-full')
     fireEvent.click(screen.getByRole('button', { name: 'Show password' }))
     expect(password).toHaveAttribute('type', 'text')
-    fireEvent.click(screen.getByRole('button', { name: /^Sign in$/i }))
+    fireEvent.click(signInButton)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/We could not sign you in/)
     expect(screen.getByRole('alert')).not.toHaveTextContent('alex@example.test')

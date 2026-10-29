@@ -16,6 +16,7 @@ export type VolunteerProfile = {
   first_name: string
   last_name: string
   preferred_name: string | null
+  pronouns: string | null
   phone: string | null
   preferred_contact_method: string | null
   location: string | null

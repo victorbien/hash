@@ -1,6 +1,10 @@
 # Volunteer portal setup
 
-The public volunteer page provides a short online interest form and a printable sign-up sheet; neither creates an account. The form collects first name, last name, optional pronouns, optional contact number, email, preferred contact method, and a privacy-notice acknowledgement. Online submissions expire 14 days after receipt and are automatically deleted by a scheduled Supabase `pg_cron` job. Paper sheets must be securely destroyed within 14 days of collection. HASH supplied a Volunteer Code of Conduct PDF marked `[INTERNAL]`; it has not been copied to public assets because permission to publish it has not been confirmed. A fuller privacy notice draft is available at `docs/volunteer-privacy-notice-draft.md` and still requires HASH-specific completion and DPO or Philippine privacy-counsel review before publication. The repository contains no confirmed role catalogue, live opportunities, training records, announcements, or volunteer administrator interface.
+The public volunteer page provides a short online interest form and a printable sign-up sheet; neither creates an account. The online form collects first name, last name, optional pronouns, optional contact number, email, preferred contact method, acknowledgement of the short privacy explanation, and acceptance of the linked Privacy Notice and Code of Conduct. The linked public documents are temporary summaries pending HASH approval; the Code of Conduct PDF supplied by HASH is marked `[INTERNAL]` and has not been copied to public assets. A fuller privacy notice draft is available at `docs/volunteer-privacy-notice-draft.md` and still requires HASH-specific completion and DPO or Philippine privacy-counsel review before publication. Online submissions expire 14 days after receipt and are automatically deleted by a scheduled Supabase `pg_cron` job. Paper sheets must be securely destroyed within 14 days of collection.
+
+The authenticated volunteer portal is for individuals HASH has approved as trained volunteers. Applicants and accounts without approved status are redirected to the separate, authenticated `/volunteer/application-status` page; application status is not shown in the volunteer portal. HASH manages approval after training through the trusted administrator workflow. Apply `supabase/migrations/202610270001_restrict_applicant_training_access.sql` to restrict training and private training-resource access to approved accounts.
+
+The Administrator dashboard labels CMS-managed volunteer material as **Volunteer information** under **Website content**. Public enquiries are handled separately at **Volunteer administration → Volunteer sign-ups**. An Administrator can convert an unexpired sign-up by confirming the person agreed to application-related communications. Conversion uses the `admin-convert-volunteer-signup` Supabase Edge Function to invite the sign-up email, creates the profile and a `pending_review` application using the existing Auth user trigger, and records the consent and sign-up association. It never sets the account to approved. The invitation email lets the person set a password; they can then view their separate application update page until HASH confirms required training and approves portal access.
 
 ## Sign-up sheet configuration
 
@@ -13,7 +17,9 @@ VITE_SUPABASE_ANON_KEY=
 
 The values are the Supabase project URL and publishable/anon key. Only the publishable/anon key may be exposed to the Vite client. Never use a Supabase service-role key in a `VITE_` variable or browser bundle. The printable sheet remains available when Supabase is not configured.
 
-Apply `supabase/migrations/202610250001_volunteer_portal.sql` and then `supabase/migrations/202610260009_volunteer_interest_signups.sql` to the intended Supabase project for the interest form. The latter creates the sign-up table, insert-only public RLS policy, administrator-only read/delete policies, and an hourly cleanup job for rows whose 14-day expiry has passed. It requires the admin-check function created by the first migration. Verify that the Supabase project supports `pg_cron`, that the cleanup job is active, and that the configured project region/provider details are reviewed before collecting real submissions.
+Apply `supabase/migrations/202610250001_volunteer_portal.sql`, `supabase/migrations/202610260009_volunteer_interest_signups.sql`, `supabase/migrations/202610260011_volunteer_policy_acknowledgement.sql`, `supabase/migrations/202610270001_restrict_applicant_training_access.sql`, and `supabase/migrations/202610270002_volunteer_signup_conversion.sql` to the intended Supabase project. The sign-up migrations create the table, insert-only public RLS policy, administrator-only read/delete policies, and an hourly cleanup job for rows whose 14-day expiry has passed; the policy acknowledgement migration enforces acceptance of the Privacy Notice and Code of Conduct. The conversion migration adds consent timestamps/document paths, conversion tracking, and optional profile pronouns. The training-access migration restricts training and private training-resource access to approved volunteers. The initial volunteer migration requires the admin-check function it creates. Verify that the Supabase project supports `pg_cron`, that the cleanup job is active, and that the configured project region/provider details are reviewed before collecting real submissions.
+
+Deploy `supabase/functions/admin-convert-volunteer-signup` as an Edge Function. Configure its `SITE_URL` secret to the deployed website origin and ensure `/volunteer/reset-password` is allowed as a Supabase Auth redirect URL. Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions; never expose or copy the service-role key into the Vite app. Configure Supabase Auth invitation email delivery before using conversion. Conversion is restricted to users whose trusted `app_metadata.role` is `admin`.
 
 For the separate authenticated volunteer portal, also apply `supabase/migrations/202610260002_staff_auth_user_trigger.sql`. Those accounts are not created by the public sign-up sheet. The portal migration does not seed opportunities, training, or announcements.
 
@@ -38,7 +44,7 @@ No staff administration UI is included. HASH must use a controlled server-side/a
 - Profiles and applications are linked to the Supabase Auth user UUID.
 - Volunteers can read and update only their own permitted profile and application fields.
 - Only approved volunteers can read published opportunities, submit an expression of interest, read restricted training/resources, announcements, and activity.
-- Pending applicants can read only their own application/profile and resources explicitly published without an approval requirement.
+- Applicants can view only their own application-status information; they cannot access the volunteer portal, training resources, or private volunteer files. HASH approval is the portal eligibility decision and should only be granted after the volunteer has successfully completed required training.
 - Suspended, inactive, and not-approved accounts are restricted in the UI; RLS remains the authoritative data-access boundary.
 - Volunteers cannot change application status, opportunity-application decisions, or training completion. Completion and participation records must be entered through the authorised staff process.
 - Restricted files belong in the private `volunteer-resources` bucket and should be referenced by their storage path. The portal requests short-lived signed URLs after checking storage access policies. Do not place restricted files in the public static assets directory.
@@ -52,12 +58,12 @@ Before production, test against a non-production Supabase project using separate
 
 1. Submit a volunteer interest form and confirm the row is stored, public users cannot read/update/delete submissions, and an administrator can review/delete unexpired rows.
 2. Confirm the cleanup cron job is active and expired submissions are deleted; test the 14-day expiry using a non-production database.
-3. Verify public inserts reject missing privacy acknowledgement and invalid field values.
-4. If using the separate account portal, confirm a new account creates one profile/application with status `pending_review`, and volunteers cannot change their own status.
+3. Verify public inserts reject missing privacy acknowledgement, missing Privacy Notice and Code of Conduct acceptance, and invalid field values.
+4. Confirm a pending applicant can view only their separate application-status page and is redirected away from every volunteer portal page and training/resource endpoint.
 5. As an approved volunteer, verify published opportunity access and duplicate-interest prevention; as a different volunteer, verify the first account's records are inaccessible.
 6. As an unauthorised user, verify drafts, unpublished resources, application-review notes, and restricted storage objects are inaccessible.
 7. Verify only an authorised `app_metadata.role = "admin"` identity can review applications, publish records, change protected statuses, and manage private storage.
-8. Verify password-reset, verification, and session-expiry behavior if the separate account portal is enabled.
+8. Verify password-reset, verification, and session-expiry behavior.
 
 Frontend tests do not prove database security. Keep these policy checks part of deployment acceptance.
 
@@ -65,4 +71,4 @@ Frontend tests do not prove database security. Keep these policy checks part of 
 
 Public: `/volunteer`, `/volunteer/register` (online and printable sign-up sheet), `/volunteer/login`, `/volunteer/forgot-password`, and `/volunteer/reset-password`.
 
-Authenticated: `/volunteer/dashboard`, `/volunteer/application`, `/volunteer/profile`, `/volunteer/availability`, `/volunteer/opportunities`, `/volunteer/opportunities/:opportunityId`, `/volunteer/training`, `/volunteer/activity`, `/volunteer/announcements`, `/volunteer/resources`, and `/volunteer/settings`.
+Administrator: `/admin/volunteers` for public volunteer sign-ups and account invitations. Authenticated applicant updates: `/volunteer/application-status` (legacy `/volunteer/application` redirects here). Approved volunteer portal: `/volunteer/dashboard`, `/volunteer/profile`, `/volunteer/availability`, `/volunteer/opportunities`, `/volunteer/opportunities/:opportunityId`, `/volunteer/training`, `/volunteer/activity`, `/volunteer/announcements`, `/volunteer/resources`, and `/volunteer/settings`.

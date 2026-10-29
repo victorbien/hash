@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthContext'
@@ -102,6 +102,13 @@ describe('CMS route protection', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'HASH Administrator' })).toBeInTheDocument()
+    const websiteContent = screen.getByRole('region', { name: 'Website content' })
+    expect(websiteContent).toBeInTheDocument()
+    expect(within(websiteContent).getByRole('region', { name: 'Content overview' })).toBeInTheDocument()
+    expect(within(websiteContent).getByRole('heading', { name: 'Recently updated' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Volunteer information.*Public website content/ })).toHaveAttribute('href', '/admin/content?type=volunteer')
+    expect(screen.getByRole('heading', { name: 'Volunteer administration' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Volunteer sign-ups.*Review public enquiries/ })).toHaveAttribute('href', '/admin/volunteers')
     expect(screen.getByRole('link', { name: /Pages.*Homepage, About/s })).toHaveAttribute('href', '/admin/content?area=pages')
     expect(screen.getByRole('link', { name: /Services.*Service descriptions/s })).toHaveAttribute('href', '/admin/content?type=service')
     expect(screen.getByRole('link', { name: /Total Items.*View content/s })).toHaveAttribute('href', '/admin/content')
@@ -131,6 +138,7 @@ describe('CMS route protection', () => {
     ['/admin', 'Dashboard', 'Back to HASH website', '/'],
     ['/admin/content', 'Website content', 'Back to dashboard', '/admin'],
     ['/admin/preferences', 'General preferences', 'Back to dashboard', '/admin'],
+    ['/admin/volunteers', 'Volunteer sign-ups', 'Back to dashboard', '/admin'],
     ['/admin/content/new', 'Create content', 'Back to website content', '/admin/content'],
     ['/admin/content/item-1/edit', 'Edit content', 'Back to website content', '/admin/content'],
   ])('shows breadcrumbs and a back link on %s', (path, current, backLabel, backHref) => {

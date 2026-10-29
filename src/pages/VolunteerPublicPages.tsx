@@ -52,6 +52,42 @@ export function VolunteerLandingPage() {
   return <VolunteerRegistrationPage />
 }
 
+export function VolunteerDocumentPage({ document }: { document: 'privacy-notice' | 'code-of-conduct' }) {
+  const isPrivacyNotice = document === 'privacy-notice'
+  const title = isPrivacyNotice ? 'Volunteer Privacy Notice' : 'Volunteer Code of Conduct'
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+      <VolunteerPageHeading
+        eyebrow="For future volunteers"
+        title={title}
+        description="Temporary information for people considering volunteering with HASH."
+      />
+      <div className="mt-6 rounded-2xl border border-[#e7c7a4] bg-[#fff8eb] p-5 text-sm leading-6 text-[#594140] shadow-[0_14px_36px_rgba(74,22,27,0.04)]">
+        This is temporary guidance while HASH prepares and approves its final {isPrivacyNotice ? 'privacy notice' : 'code of conduct'}. Please contact HASH at <a className="public-text-link" href="mailto:hash@hashinfo.org">hash@hashinfo.org</a> if you have questions.
+      </div>
+      {isPrivacyNotice ? (
+        <section className="mt-8 space-y-5 rounded-3xl border border-[#f1d5d8] bg-white p-6 leading-7 text-[#594140] shadow-[0_14px_36px_rgba(74,22,27,0.05)] sm:p-8">
+          <h2 className="text-xl font-bold text-[#251818]">How HASH uses volunteer sign-up details</h2>
+          <p>HASH (HIV &amp; AIDS Support House, Inc.) uses the name, contact details, optional pronouns, and preferred contact method you provide to respond to your volunteer enquiry.</p>
+          <p>Online sign-ups are stored in HASH&apos;s Supabase database and scheduled for deletion within 14 days after submission. Paper sign-up sheets should be securely destroyed within 14 days after collection.</p>
+          <p>Only provide the information requested. Do not include health information, HIV status, or details about HASH clients or service users.</p>
+          <p>For privacy questions or requests, email <a className="public-text-link" href="mailto:hash@hashinfo.org">hash@hashinfo.org</a>.</p>
+        </section>
+      ) : (
+        <section className="mt-8 space-y-5 rounded-3xl border border-[#f1d5d8] bg-white p-6 leading-7 text-[#594140] shadow-[0_14px_36px_rgba(74,22,27,0.05)] sm:p-8">
+          <h2 className="text-xl font-bold text-[#251818]">Interim expectations for volunteers</h2>
+          <p>While volunteering with HASH, treat every person with dignity, respect, and fairness. Do not harass, discriminate against, threaten, or exploit anyone.</p>
+          <p>Respect privacy and confidentiality. Do not share personal information or stories you learn through volunteering, and do not record or photograph clients or service users without explicit HASH authorization.</p>
+          <p>Maintain appropriate boundaries, follow HASH staff instructions and safety procedures, and do not promise services or speak on HASH&apos;s behalf unless authorized.</p>
+          <p>Raise safety, conduct, or confidentiality concerns with HASH staff promptly. These interim expectations do not replace HASH&apos;s final approved code or any role-specific instructions.</p>
+        </section>
+      )}
+      <Link className="public-text-link mt-6 inline-block" to="/volunteer/register">← Back to volunteer sign-up</Link>
+    </div>
+  )
+}
+
 export function VolunteerRegistrationPage() {
   const [busy, setBusy] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -93,6 +129,7 @@ export function VolunteerRegistrationPage() {
         email,
         preferred_contact_method: contactMethod,
         privacy_acknowledged: true,
+        policies_acknowledged: true,
       })
       if (insertError) {
         setError('We could not save your sign-up. Please try again or contact HASH directly.')
@@ -118,7 +155,7 @@ export function VolunteerRegistrationPage() {
           HASH (HIV &amp; AIDS Support House, Inc.) uses the details below to respond to your volunteer enquiry. Your online submission is stored in HASH's Supabase database and automatically deleted 14 days after submission. Do not include health information or details about clients or service users. Questions or requests: <a className="public-text-link" href="mailto:hash@hashinfo.org">hash@hashinfo.org</a>.
         </div>
         {!supabase && (
-          <div className="mt-4 rounded-2xl border border-[#f1dfe1] bg-white p-5 text-sm leading-6 text-[#594140]" role="status">
+          <div className="mt-4 rounded-2xl border border-[#f1d5d8] bg-white p-5 text-sm leading-6 text-[#594140] shadow-[0_14px_36px_rgba(74,22,27,0.04)]" role="status">
             The online sign-up service is not configured yet. You can still print the sheet below or contact HASH directly.
           </div>
         )}
@@ -127,7 +164,7 @@ export function VolunteerRegistrationPage() {
             Thank you for your interest. HASH will contact you using your preferred method.
           </p>
         ) : (
-          <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-6 rounded-3xl border border-[#f1dfe1] bg-white p-6 sm:p-8">
+          <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-6 rounded-3xl border border-[#f1d5d8] bg-white p-6 shadow-[0_14px_36px_rgba(74,22,27,0.05)] sm:p-8">
             <div className="grid gap-5 sm:grid-cols-2">
               <label className={labelClass}>First name<input className={inputClass} name="firstName" autoComplete="given-name" maxLength={120} required /></label>
               <label className={labelClass}>Last name<input className={inputClass} name="lastName" autoComplete="family-name" maxLength={120} required /></label>
@@ -147,6 +184,12 @@ export function VolunteerRegistrationPage() {
               <input className="mt-1 size-4 accent-[#ae2736]" name="privacyAcknowledgement" type="checkbox" required />
               <span>I understand HASH will use these details to respond to my volunteer enquiry and delete this online sign-up within 14 days after submission.</span>
             </label>
+            <label className="flex items-start gap-3 text-sm leading-6 text-[#594140]">
+              <input className="mt-1 size-4 accent-[#ae2736]" name="conductAcknowledgement" type="checkbox" required />
+              <span>
+                I have read and agree to the <Link className="public-text-link" to="/volunteer/privacy-notice">Privacy Notice</Link> and <Link className="public-text-link" to="/volunteer/code-of-conduct">Code of Conduct</Link>.
+              </span>
+            </label>
             <input aria-hidden="true" autoComplete="off" className="absolute -left-[10000px]" name="website" tabIndex={-1} type="text" />
             {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -158,7 +201,7 @@ export function VolunteerRegistrationPage() {
           </form>
         )}
       </div>
-      <section aria-labelledby="volunteer-login-heading" className="no-print mt-8 rounded-2xl border border-[#f1dfe1] bg-white px-6 py-5 text-center shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 sm:text-left">
+      <section aria-labelledby="volunteer-login-heading" className="no-print mt-8 rounded-2xl border border-[#f1d5d8] bg-white px-6 py-5 text-center shadow-[0_14px_36px_rgba(74,22,27,0.05)] sm:flex sm:items-center sm:justify-between sm:gap-6 sm:text-left">
         <div>
           <h2 className="text-xl font-bold text-[#251818]" id="volunteer-login-heading">Already a volunteer?</h2>
           <p className="mt-2 text-sm leading-6 text-[#594140]">Sign in to access your volunteer portal, application, and available resources.</p>
@@ -225,11 +268,11 @@ export function VolunteerLoginPage() {
       <h1 className="text-3xl font-bold">Volunteer sign in</h1>
       <p className="mt-3 leading-7 text-[#594140]">Sign in to access your volunteer account.</p>
       {!supabase && <div className="mt-5"><AuthConfigurationMessage /></div>}
-      <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-5 rounded-3xl border border-[#f1dfe1] bg-white p-7">
+      <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-5 rounded-3xl border border-[#f1d5d8] bg-white p-7 shadow-[0_14px_36px_rgba(74,22,27,0.05)]">
         <label className={labelClass}>Email address<input className={inputClass} type="email" name="email" autoComplete="email" required /></label>
         <PasswordField label="Password" name="password" autoComplete="current-password" />
         {(error || authError) && <p role="alert" className="text-sm text-red-800">{error || authError}</p>}
-        <Button disabled={busy || !supabase} className="w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit">{busy ? 'Signing in…' : 'Sign in'}</Button>
+        <Button disabled={busy || !supabase} className="w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit" variant="outline">{busy ? 'Signing in…' : 'Sign in'}</Button>
         <div className="flex flex-wrap justify-between gap-3 text-sm"><Link className="public-text-link" to="/volunteer/forgot-password">Forgot password?</Link><Link className="public-text-link" to="/volunteer/register">Volunteer sign-up sheet</Link></div>
       </form>
     </section>
@@ -262,10 +305,10 @@ export function ForgotPasswordPage() {
       <h1 className="text-3xl font-bold">Reset your password</h1>
       <p className="mt-3 leading-7 text-[#594140]">Enter your email address to request a secure password reset.</p>
       {submitted ? <p className="mt-6 rounded-2xl bg-[#fff0ef] p-5 leading-7" role="status">If an account matches that address and email delivery is configured, the authentication service will send password-reset instructions.</p> : (
-        <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-5 rounded-3xl border border-[#f1dfe1] bg-white p-7">
+        <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-5 rounded-3xl border border-[#f1d5d8] bg-white p-7 shadow-[0_14px_36px_rgba(74,22,27,0.05)]">
           <label className={labelClass}>Email address<input className={inputClass} type="email" name="email" autoComplete="email" required /></label>
           {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
-          <Button disabled={!supabase} className="w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit">Request reset link</Button>
+          <Button disabled={!supabase} className="w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit" variant="outline">Request reset link</Button>
         </form>
       )}
       <Link className="public-text-link mt-5 inline-block" to="/volunteer/login">Back to sign in</Link>
@@ -297,12 +340,12 @@ export function ResetPasswordPage() {
   return (
     <section className="mx-auto max-w-xl px-4 py-14 sm:px-6">
       <h1 className="text-3xl font-bold">Choose a new password</h1>
-      <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-5 rounded-3xl border border-[#f1dfe1] bg-white p-7">
+      <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 space-y-5 rounded-3xl border border-[#f1d5d8] bg-white p-7 shadow-[0_14px_36px_rgba(74,22,27,0.05)]">
         <label className={labelClass}>New password<input className={inputClass} type="password" name="password" minLength={12} autoComplete="new-password" required /></label>
         <label className={labelClass}>Confirm new password<input className={inputClass} type="password" name="confirmPassword" minLength={12} autoComplete="new-password" required /></label>
         {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
         {message && <p role="status" className="text-sm text-green-800">{message}</p>}
-        <Button disabled={!supabase} className="w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit">Update password</Button>
+        <Button disabled={!supabase} className="w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit" variant="outline">Update password</Button>
       </form>
     </section>
   )

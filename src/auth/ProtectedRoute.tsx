@@ -2,15 +2,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { useAuth } from './useAuth'
 
-const pendingPaths = [
-  '/volunteer/dashboard',
-  '/volunteer/application',
-  '/volunteer/profile',
-  '/volunteer/availability',
-  '/volunteer/training',
-  '/volunteer/settings',
-]
-
 export function ProtectedRoute() {
   const { user, loading, configured, application, error } = useAuth()
   const location = useLocation()
@@ -25,14 +16,11 @@ export function ProtectedRoute() {
   }
 
   const status = application?.status
-  if (status === 'suspended' || status === 'inactive' || status === 'not_approved') {
-    if (location.pathname !== '/volunteer/dashboard') {
-      return <Navigate to="/volunteer/dashboard" replace />
+  if (status !== 'approved') {
+    if (location.pathname !== '/volunteer/application-status') {
+      return <Navigate to="/volunteer/application-status" replace />
     }
-  } else if (
-    status !== 'approved' &&
-    !pendingPaths.some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`))
-  ) {
+  } else if (location.pathname === '/volunteer/application-status') {
     return <Navigate to="/volunteer/dashboard" replace />
   }
 

@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { VolunteerLayout } from '../components/layout/VolunteerLayout'
 import {
+  VolunteerDashboardPage,
   OpportunitiesPage,
   VolunteerActivityPage,
   VolunteerApplicationPage,
@@ -56,6 +58,7 @@ function profileState() {
       first_name: 'Alex',
       last_name: 'Volunteer',
       preferred_name: null,
+      pronouns: null,
       phone: null,
       preferred_contact_method: null,
       location: null,
@@ -63,7 +66,7 @@ function profileState() {
     },
     application: {
       id: 'application-1',
-      status: 'pending_review',
+      status: 'approved',
       interests: [],
       availability: { days: ['Monday'], times: ['Morning'] },
       skills: null,
@@ -86,10 +89,40 @@ describe('volunteer portal pages', () => {
     from.mockImplementation(() => query({ data: null, error: null }))
   })
 
-  it('shows the authenticated volunteer application status and submission date', () => {
-    render(<VolunteerApplicationPage />)
+  it('shows application updates separately from the volunteer portal', () => {
+    const auth = profileState()
+    auth.application.status = 'pending_review'
+    useAuthMock.mockReturnValue(auth)
+    render(<MemoryRouter><VolunteerApplicationPage /></MemoryRouter>)
     expect(screen.getByText('Pending review')).toBeInTheDocument()
     expect(screen.getByText(new Date('2026-10-01T00:00:00Z').toLocaleDateString())).toBeInTheDocument()
+    expect(screen.getByText('Volunteer application')).toHaveClass('text-xs', 'uppercase', 'text-primary')
+    expect(screen.queryByText('Volunteer portal')).not.toBeInTheDocument()
+  })
+
+  it('uses the HASH brand in the portal header and navigation', () => {
+    render(
+      <MemoryRouter initialEntries={['/volunteer/dashboard']}>
+        <Routes>
+          <Route path="/volunteer" element={<VolunteerLayout />}>
+            <Route path="dashboard" element={<p>Dashboard content</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('img', { name: 'HASH logo' })).toHaveClass('h-12', 'w-32', 'object-cover')
+    expect(screen.getByRole('navigation', { name: 'Volunteer portal navigation' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Public HASH website' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: 'My application' })).not.toBeInTheDocument()
+  })
+
+  it('does not show applicant statuses in the volunteer dashboard', () => {
+    render(<MemoryRouter><VolunteerDashboardPage /></MemoryRouter>)
+
+    expect(screen.getByRole('heading', { name: /welcome, alex/i })).toBeInTheDocument()
+    expect(screen.queryByText(/application status/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/pending review/i)).not.toBeInTheDocument()
   })
 
   it('saves only editable profile and application fields', async () => {
@@ -97,6 +130,7 @@ describe('volunteer portal pages', () => {
     useAuthMock.mockReturnValue(auth)
     from.mockImplementation(() => query({ data: { id: 'saved-row' }, error: null }))
     render(<VolunteerProfilePage />)
+    expect(screen.getByRole('button', { name: /save profile/i })).toHaveClass('public-outline-link')
     fireEvent.change(screen.getByLabelText(/^First name/), { target: { value: 'Alexandra' } })
     fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
 

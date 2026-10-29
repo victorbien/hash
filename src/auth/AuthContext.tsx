@@ -26,7 +26,7 @@ async function fetchVolunteerData(userId: string) {
     }
   }
   const [profileResult, applicationResult] = await Promise.all([
-    supabase.from('profiles').select('id, first_name, last_name, preferred_name, phone, preferred_contact_method, location, preferred_language').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('id, first_name, last_name, preferred_name, pronouns, phone, preferred_contact_method, location, preferred_language').eq('id', userId).maybeSingle(),
     supabase.from('volunteer_applications').select('id, status, interests, availability, skills, experience, motivation, submitted_at').eq('user_id', userId).maybeSingle(),
   ])
   if (profileResult.error || applicationResult.error) {
