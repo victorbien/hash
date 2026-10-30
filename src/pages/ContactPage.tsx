@@ -1,10 +1,10 @@
 import { Button } from '../components/ui/Button'
-import { SectionHeading } from '../components/ui/SectionHeading'
+import { BrandSectionIntro } from '../components/ui/BrandSectionIntro'
 
 export function ContactPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <SectionHeading
+      <BrandSectionIntro
         eyebrow="Contact"
         title="Connect with HASH."
         description="Whether you are seeking support, learning about programmes, or exploring a partnership, HASH is available to connect and guide you to the right pathway."
@@ -28,8 +28,8 @@ export function ContactPage() {
             <textarea className="mt-2 min-h-32 w-full rounded-xl border border-[#f1dfe1] bg-[#fff8f7] p-3 outline-none ring-0 focus:border-primary" placeholder="Tell us how we can help" />
           </label>
 
-          <div className="mt-6">
-            <Button type="submit" onClick={() => undefined}>Send message</Button>
+          <div className="mt-6 flex justify-center">
+            <Button type="submit" variant="outline">Send message</Button>
           </div>
         </form>
 
